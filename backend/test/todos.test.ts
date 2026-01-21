@@ -1,15 +1,14 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
-import { eq } from "drizzle-orm";
-import { db } from "../src/config/database";
-import { todos, users } from "../src/db/schema";
+import { setupTestDatabase, teardownTestDatabase } from "./setup";
 
 const BASE_URL = "http://localhost:3000";
 
 describe("Todos API", () => {
   let authToken: string;
-  let userId: number;
 
   beforeAll(async () => {
+    await setupTestDatabase();
+
     const registerResponse = await fetch(`${BASE_URL}/api/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -21,12 +20,10 @@ describe("Todos API", () => {
 
     const data = (await registerResponse.json()) as { user: { id: number }; token: string };
     authToken = data.token;
-    userId = data.user.id;
   });
 
   afterAll(async () => {
-    await db.delete(todos).where(eq(todos.userId, userId));
-    await db.delete(users).where(eq(users.id, userId));
+    await teardownTestDatabase();
   });
 
   describe("POST /api/todos", () => {

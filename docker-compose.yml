@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18.0-alpine3.22
     environment:
       POSTGRES_DB: todo_db
       POSTGRES_USER: todo_user
@@ -11,6 +11,20 @@ services:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U todo_user"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres-test:
+    image: postgres:18.0-alpine3.22
+    environment:
+      POSTGRES_DB: todo_test_db
+      POSTGRES_USER: todo_test_user
+      POSTGRES_PASSWORD: todo_test_pass
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U todo_test_user"]
       interval: 5s
       timeout: 5s
       retries: 5

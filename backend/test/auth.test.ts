@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { eq } from "drizzle-orm";
 import { db } from "../src/config/database";
 import { users } from "../src/db/schema";
+import { setupTestDatabase, teardownTestDatabase } from "./setup";
 
 const BASE_URL = "http://localhost:3000";
 
@@ -9,6 +10,8 @@ describe("Authentication", () => {
   let testUserId: number;
 
   beforeAll(async () => {
+    await setupTestDatabase();
+
     const [user] = await db
       .insert(users)
       .values({
@@ -20,7 +23,7 @@ describe("Authentication", () => {
   });
 
   afterAll(async () => {
-    await db.delete(users).where(eq(users.id, testUserId));
+    await teardownTestDatabase();
   });
 
   describe("POST /api/auth/register", () => {
