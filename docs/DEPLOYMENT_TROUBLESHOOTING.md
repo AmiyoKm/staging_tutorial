@@ -27,25 +27,36 @@
 2. Check DATABASE_URL format (must include `?sslmode=require`)
 3. Review migration SQL in `drizzle` folder
 
-## Railway Issues
+## DigitalOcean Issues
 
 ### Deployment not triggering
 
-**Cause:** Railway not watching Docker Hub tag
+**Cause:** DigitalOcean app not configured for continuous deployment from Docker Hub
 
 **Fix:**
-1. Check service settings in Railway
-2. Verify image source is set to Docker Hub
-3. Check tag name matches (`:staging` or `:production`)
+1. Go to DigitalOcean dashboard → Your app → Settings
+2. Verify "Deploy on push" is enabled
+3. Check Docker Hub image source is configured correctly
+4. Ensure tag name matches (`:staging` or `:production`)
 
 ### Health check failing
 
 **Cause:** App not starting or DATABASE_URL misconfigured
 
 **Fix:**
-1. Check Railway service logs
+1. Check DigitalOcean app logs (Components → Logs)
 2. Verify DATABASE_URL includes correct Neon branch
-3. Ensure Railway env vars match Neon connection strings
+3. Ensure app env vars match Neon connection strings
+4. Check health check path is `/health`
+
+### App crashes on startup
+
+**Cause:** Missing environment variables or port mismatch
+
+**Fix:**
+1. Verify all required env vars are set: `DATABASE_URL`, `JWT_SECRET`, `NODE_ENV`, `PORT`
+2. Ensure `PORT` is set to `3000` (matches container port)
+3. Check logs for specific error messages
 
 ## Neon Issues
 
@@ -74,10 +85,16 @@
 gh run view --log-failed
 ```
 
-### Railway
+### DigitalOcean
 ```bash
-railway logs --service=staging
-railway logs --service=production
+# List apps
+doctl apps list
+
+# View logs
+doctl apps logs <app-id>
+
+# Stream logs in real-time
+doctl apps logs <app-id> --follow
 ```
 
 ### Neon

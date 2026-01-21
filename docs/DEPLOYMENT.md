@@ -1,14 +1,14 @@
-# Deployment Guide: Railway + Neon
+# Deployment Guide: DigitalOcean + Neon
 
-This guide explains how to deploy the Todo API to Railway (app hosting) with Neon (PostgreSQL database) for both **staging** and **production** environments.
+This guide explains how to deploy the Todo API to DigitalOcean App Platform with Neon (PostgreSQL database) for both **staging** and **production** environments.
 
 ---
 
 ## Prerequisites
 
-- Railway account (free tier available)
+- DigitalOcean account (free tier available: $200 credit for 60 days)
 - Neon account (free tier available)
-- GitHub repository connected to Railway
+- Docker Hub account
 
 ---
 
@@ -32,7 +32,7 @@ npm install -g neonctl
 neonctl auth
 
 # List branches (you start with one called 'br-diffusion')
-neonctl list-brands --project-id YOUR_PROJECT_ID
+neonctl list-branches --project-id YOUR_PROJECT_ID
 
 # Create staging branch
 neonctl branches create --project-id YOUR_PROJECT_ID --name staging --parent-id br-diffusion
@@ -55,47 +55,37 @@ neonctl connection-string --project-id YOUR_PROJECT_ID --branch-name production
 
 ---
 
-## Step 2: Set Up Railway
+## Step 2: Set Up DigitalOcean App Platform
 
-### Install Railway CLI
-
-```bash
-npm install -g @railway/cli
-railway login
-```
-
-### Initialize Railway Project
+### Install DigitalOcean CLI (doctl)
 
 ```bash
-cd backend
-railway init
+# Linux
+wget https://github.com/digitalocean/doctl/releases/latest/download/doctl-<version>-linux-amd64.tar.gz
+tar xf ./doctl-*-linux-amd64.tar.gz
+sudo mv doctl /usr/local/bin
+
+# macOS
+brew install doctl
+
+# Authenticate
+doctl auth init
 ```
-
-### Link to GitHub Repository
-
-1. Go to [railway.app](https://railway.app)
-2. Click "New Project" → "Deploy from GitHub"
-3. Select your repository
 
 ---
 
-## Step 3: Create Railway Services
+## Step 3: Create DigitalOcean Apps
 
-### Option A: Using Railway CLI
+### Using DigitalOcean Dashboard
 
-```bash
-# Create staging service
-railway add --service=staging
-
-# Create production service
-railway add --service=production
-```
-
-### Option B: Using Railway Dashboard
-
-1. Create a new project
-2. Click "New Service" → "GitHub Repo"
-3. Select your repository
+1. Go to [digitalocean.com](https://cloud.digitalocean.com)
+2. Click "Apps" → "Create App"
+3. Select "Docker Hub" as image source
+4. Configure your staging app:
+   - Image: `amiyokm/todo-backend:staging`
+   - HTTP Port: 3000
+   - Health Check Path: `/health`
+5. Repeat for production app with image: `amiyokm/todo-backend:production`
 
 ---
 
@@ -103,7 +93,7 @@ railway add --service=production
 
 ### Staging Environment
 
-In Railway dashboard, go to your staging service → Variables:
+In DigitalOcean dashboard, go to your staging app → Settings → Environment Variables:
 
 | Variable | Value |
 |----------|-------|
@@ -114,7 +104,7 @@ In Railway dashboard, go to your staging service → Variables:
 
 ### Production Environment
 
-In Railway dashboard, go to your production service → Variables:
+In DigitalOcean dashboard, go to your production app → Settings → Environment Variables:
 
 | Variable | Value |
 |----------|-------|
@@ -129,42 +119,34 @@ In Railway dashboard, go to your production service → Variables:
 
 ### Automatic Deployments
 
-Railway automatically deploys when you push to connected branches:
+DigitalOcean App Platform automatically deploys when new Docker images are pushed:
 
-| Branch | Environment |
-|--------|-------------|
-| `develop` | Staging |
-| `main` | Production |
+| Branch | Docker Tag | Environment |
+|--------|-----------|-------------|
+| `develop` | `:staging` | Staging |
+| `master` | `:production` | Production |
 
 ### Manual Deployment
 
-```bash
-# Deploy to staging
-railway up --service=staging
-
-# Deploy to production
-railway up --service=production
-```
+Trigger a deployment from the dashboard:
+1. Go to your app
+2. Click "Deployments"
+3. Click "Deploy" → "From Docker Hub image"
 
 ---
 
 ## Step 6: Run Migrations
 
-### Option A: Railway CLI (Recommended)
+Migrations are run automatically via GitHub Actions during deployment.
+
+For manual migrations, use the Neon setup script:
 
 ```bash
-# Set environment context
-railway variables --service=staging
-
-# Run migrations
-railway run "bun run db:migrate"
+cd backend
+bun run neon:setup --environment=staging
+# or
+bun run neon:setup --environment=production
 ```
-
-### Option B: One-off Command in Dashboard
-
-1. Go to your service in Railway dashboard
-2. Click "New" → "One-off Command"
-3. Enter: `bun run db:migrate`
 
 ---
 
@@ -175,12 +157,12 @@ railway run "bun run db:migrate"
 │                         GitHub                             │
 │         ┌─────────────────┴─────────────────┐             │
 │         │                                   │             │
-│    develop branch                      main branch        │
+│    develop branch                      master branch       │
 │         │                                   │             │
 │         ▼                                   ▼             │
 │ ┌───────────────┐                   ┌───────────────┐    │
 │ │   Staging     │                   │  Production   │    │
-│ │  (Railway)    │                   │  (Railway)    │    │
+│ │  (DigitalOcean)│                  │  (DigitalOcean)│   │
 │ │               │                   │               │    │
 │ │ ┌───────────┐ │                   │ ┌───────────┐ │    │
 │ │ │   Neon    │ │                   │ │   Neon    │ │    │
@@ -190,17 +172,18 @@ railway run "bun run db:migrate"
 │ └───────────────┘                   └───────────────┘    │
 │         │                                   │             │
 │         ▼                                   ▼             │
-│  staging.railway.app               production.railway.app │
+│  staging-app.onrender.com           production-app.onrender.com │
 └────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Free Tier Limits (2026)
+## Pricing (2026)
 
-### Railway
-- ~$5/month free credit
-- After credit: $5-7/month per service
+### DigitalOcean App Platform
+- Free tier: Basic apps with 256MB RAM
+- Paid: $5-12/month depending on size
+- Includes free SSL certificates
 
 ### Neon
 - 0.5 GB storage per project
@@ -221,28 +204,25 @@ postgresql://user:pass@ep-xxx.region.aws.neon.tech/neondb?sslmode=require
 
 ### Migration Failures
 
-Ensure the `DATABASE_URL` in Railway matches the branch you want to migrate.
+Ensure the `DATABASE_URL` matches the correct Neon branch.
 
 ### Health Check Failures
 
-The app exposes `/health` endpoint for Railway health checks.
+The app exposes `/health` endpoint for DigitalOcean health checks.
 
 ---
 
 ## Useful Commands
 
 ```bash
-# View logs
-railway logs --service=staging
+# List apps
+doctl apps list
 
-# Open in browser
-railway open --service=staging
+# View app logs
+doctl apps logs <app-id>
 
-# View environment variables
-railway variables --service=staging
-
-# Shell into container
-railway shell --service=staging
+# Get app details
+doctl apps get <app-id>
 ```
 
 ---
@@ -274,23 +254,11 @@ Configure these secrets in GitHub repository settings:
    - Creates branch if needed
    - Gets connection string
    - Runs migrations
-2. Docker image built and pushed
-3. Railway auto-deploys from Docker Hub
-
-### Manual Deployment
-
-To manually trigger deployment, use the Railway CLI:
-
-```bash
-# Staging
-railway up --service=staging
-
-# Production
-railway up --service=production
-```
+2. Docker image built and pushed to Docker Hub
+3. DigitalOcean App Platform auto-deploys from Docker Hub
 
 ### Monitoring Deployments
 
 - GitHub Actions: Check "Actions" tab in repository
-- Railway: Check dashboard for deployment logs
+- DigitalOcean: Check dashboard for deployment logs
 - Neon: Check branch status in console
