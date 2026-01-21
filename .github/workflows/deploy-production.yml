@@ -1,0 +1,58 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          bun install
+
+      - name: Setup Neon & run migrations
+        run: |
+          cd backend
+          bun run neon:setup --environment=production
+        env:
+          NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+
+      - name: Create version tag
+        id: tag
+        run: |
+          TAG=v$(date +%Y.%m.%d-%H%M%S)
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          git tag $TAG
+          git push origin $TAG
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push Docker images
+        run: |
+          docker build -t amiyokm/todo-backend:production -t amiyokm/todo-backend:latest ./backend
+          docker push amiyokm/todo-backend:production
+          docker push amiyokm/todo-backend:latest
+
+      - name: Health check
+        run: |
+          echo "Run health checks against production"
+          # TODO: Add actual health checks against production URL
+          # curl -f https://production-url.railway.app/health || exit 1

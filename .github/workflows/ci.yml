@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [develop, master, release/**, hotfix/**]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18.0-alpine3.22
+        env:
+          POSTGRES_DB: todo_db
+          POSTGRES_USER: todo_user
+          POSTGRES_PASSWORD: todo_pass
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          bun install
+
+      - name: Type check
+        run: |
+          cd backend
+          bun run typecheck
+
+      - name: Run tests
+        run: |
+          cd backend
+          bun run test
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://todo_user:todo_pass@localhost:5432/todo_db
+          JWT_SECRET: test_secret
+
+      - name: Build Docker image
+        run: |
+          docker build -t todo-backend:test ./backend
