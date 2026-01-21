@@ -90,4 +90,25 @@ export const authPlugin = new Elysia({ name: 'auth' })
         401: errorResponseSchema,
       },
     }
-  );
+  )
+  .get('/api/auth/me', async ({ jwt, headers, set }) => {
+    const auth = headers.authorization;
+    if (!auth) {
+      set.status = 401;
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    const payload = await jwt.verify(auth.replace('Bearer ', ''));
+    if (!payload) {
+      set.status = 401;
+      return { success: false, error: 'Invalid token' };
+    }
+
+    const [user] = await db.select().from(users).where(eq(users.id, (payload as any).userId));
+    if (!user) {
+      set.status = 404;
+      return { success: false, error: 'User not found' };
+    }
+
+    return { id: user.id, email: user.email };
+  });
