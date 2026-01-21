@@ -2,7 +2,7 @@ import { Elysia, t } from 'elysia';
 import { eq, and, desc } from 'drizzle-orm';
 import { db } from '../config/database';
 import { todos } from '../db/schema';
-import { authMiddleware, type AuthContext } from '../middleware/auth';
+import { authMiddleware } from '../middleware/auth';
 import {
   createTodoSchema,
   updateTodoSchema,
@@ -14,9 +14,7 @@ export const todosPlugin = new Elysia({ name: 'todos' })
   .use(authMiddleware)
   .get(
     '/api/todos',
-    async (ctx) => {
-      const { userId } = ctx as unknown as AuthContext;
-      const { query } = ctx;
+    async ({ userId, query }) => {
       const conditions = [eq(todos.userId, userId)];
 
       if (query.completed !== undefined) {
@@ -54,9 +52,7 @@ export const todosPlugin = new Elysia({ name: 'todos' })
   )
   .post(
     '/api/todos',
-    async (ctx) => {
-      const { userId } = ctx as unknown as AuthContext;
-      const { body } = ctx;
+    async ({ userId, body }) => {
       const [newTodo] = await db
         .insert(todos)
         .values({
@@ -83,9 +79,7 @@ export const todosPlugin = new Elysia({ name: 'todos' })
   )
   .get(
     '/api/todos/:id',
-    async (ctx) => {
-      const { userId } = ctx as unknown as AuthContext;
-      const { params, set } = ctx;
+    async ({ userId, params, set }) => {
       const [todo] = await db
         .select()
         .from(todos)
@@ -115,9 +109,7 @@ export const todosPlugin = new Elysia({ name: 'todos' })
   )
   .put(
     '/api/todos/:id',
-    async (ctx) => {
-      const { userId } = ctx as unknown as AuthContext;
-      const { params, body, set } = ctx;
+    async ({ userId, params, body, set }) => {
       const [existingTodo] = await db
         .select()
         .from(todos)
@@ -160,9 +152,7 @@ export const todosPlugin = new Elysia({ name: 'todos' })
   )
   .delete(
     '/api/todos/:id',
-    async (ctx) => {
-      const { userId } = ctx as unknown as AuthContext;
-      const { params, set } = ctx;
+    async ({ userId, params, set }) => {
       const [existingTodo] = await db
         .select()
         .from(todos)
@@ -184,9 +174,7 @@ export const todosPlugin = new Elysia({ name: 'todos' })
   )
   .patch(
     '/api/todos/:id/complete',
-    async (ctx) => {
-      const { userId } = ctx as unknown as AuthContext;
-      const { params, set } = ctx;
+    async ({ userId, params, set }) => {
       const [existingTodo] = await db
         .select()
         .from(todos)
