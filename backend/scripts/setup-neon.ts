@@ -14,6 +14,27 @@
 
 import { parseArgs, ENVIRONMENT_BRANCHES, type Environment } from './neon-utils';
 
+// Neon API interfaces
+interface NeonBranch {
+  id: string;
+  name: string;
+  current_state: string;
+  primary?: boolean;
+}
+
+interface NeonBranchesResponse {
+  branches: NeonBranch[];
+}
+
+interface NeonBranchResponse {
+  branch: NeonBranch;
+}
+
+interface NeonConnectionStringResponse {
+  connection_uri?: string;
+  uri?: string;
+}
+
 // ANSI colors for output
 const colors = {
   reset: '\x1b[0m',
@@ -31,49 +52,149 @@ function logStep(step: number, message: string) {
   log(`\n[Step ${step}] ${message}`, 'blue');
 }
 
+// Neon API helper functions
+async function listNeonBranches(projectId: string, apiKey: string): Promise<NeonBranch[]> {
+  log('Listing branches via Neon API...');
+
+  const response = await fetch(`https://console.neon.tech/api/v2/projects/${projectId}/branches`, {
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to list branches: ${response.statusText}`);
+  }
+
+  const data = (await response.json()) as NeonBranchesResponse;
+  return data.branches || [];
+}
+
+async function createNeonBranch(projectId: string, apiKey: string, branchName: string, parentId: string): Promise<NeonBranch> {
+  log(`Creating branch "${branchName}" from parent "${parentId}"...`);
+
+  const response = await fetch(`https://console.neon.tech/api/v2/projects/${projectId}/branches`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      branch: {
+        name: branchName,
+        parent_id: parentId,
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to create branch: ${response.statusText}`);
+  }
+
+  const data = (await response.json()) as NeonBranchResponse;
+  return data.branch;
+}
+
+async function getConnectionString(projectId: string, apiKey: string, branchId: string): Promise<string> {
+  log('Getting connection string...');
+
+  const response = await fetch(`https://console.neon.tech/api/v2/projects/${projectId}/branches/${branchId}/connection-string`, {
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to get connection string: ${response.statusText}`);
+  }
+
+  const data = (await response.json()) as NeonConnectionStringResponse;
+  // Neon returns: { "connection_uri": "postgresql://..." }
+  return data.connection_uri || data.uri || '';
+}
+
 async function main() {
   try {
     log('🚀 Neon Setup Script for Deployment Automation', 'green');
 
-    // Parse arguments
     const { environment } = parseArgs();
     log(`Environment: ${environment}`, 'yellow');
 
-    // Get configuration from environment variables
     const projectId = process.env.NEON_PROJECT_ID;
     const apiKey = process.env.NEON_API_KEY;
 
-    if (!projectId) {
-      throw new Error('NEON_PROJECT_ID environment variable is required');
-    }
-    if (!apiKey) {
-      throw new Error('NEON_API_KEY environment variable is required');
-    }
+    if (!projectId) throw new Error('NEON_PROJECT_ID is required');
+    if (!apiKey) throw new Error('NEON_API_KEY is required');
 
     const branchName = ENVIRONMENT_BRANCHES[environment];
-    log(`Target branch: ${branchName}`, 'yellow');
 
-    // Step 1: Check if branch exists (using Neon MCP)
+    // Step 1: Check and create branch if needed
     logStep(1, 'Checking Neon branches...');
-    log(`Project ID: ${projectId}`);
-    log('Branch check will be performed via Neon MCP in GitHub Actions context');
+    const branches = await listNeonBranches(projectId, apiKey);
+    log(`Found ${branches.length} existing branches`);
+
+    const existingBranch = branches.find(b => b.name === branchName);
+
+    let branchId: string;
+    if (existingBranch) {
+      branchId = existingBranch.id;
+      log(`Branch "${branchName}" already exists (${existingBranch.current_state})`, 'green');
+    } else {
+      // Find the primary/production branch as parent
+      const primaryBranch = branches.find(b => b.primary || b.name === 'production' || b.name === 'br-diffusion');
+      if (!primaryBranch) {
+        throw new Error('No parent branch found to create from');
+      }
+
+      log(`Creating "${branchName}" branch from "${primaryBranch.name}"...`);
+      const newBranch = await createNeonBranch(projectId, apiKey, branchName, primaryBranch.id);
+      branchId = newBranch.id;
+      log(`Branch created: ${branchId} (${newBranch.current_state})`, 'green');
+    }
 
     // Step 2: Get connection string
     logStep(2, 'Getting connection string...');
-    log('Connection string retrieval via Neon MCP');
+    const connectionString = await getConnectionString(projectId, apiKey, branchId);
+    log(`Connection string retrieved (length: ${connectionString.length})`, 'green');
+
+    // Set DATABASE_URL for migrations
+    process.env.DATABASE_URL = connectionString;
 
     // Step 3: Run migrations
     logStep(3, 'Running migrations...');
-    log('This will be done after DATABASE_URL is set');
+    const { spawn } = await import('child_process');
+
+    await new Promise<void>((resolve, reject) => {
+      const migrate = spawn('bun', ['run', 'db:migrate'], {
+        stdio: 'inherit',
+        cwd: process.cwd(),
+        env: { ...process.env, DATABASE_URL: connectionString },
+      });
+
+      migrate.on('close', (code) => {
+        if (code === 0) {
+          log('Migrations completed successfully!', 'green');
+          resolve();
+        } else {
+          reject(new Error(`Migrations failed with code ${code}`));
+        }
+      });
+    });
 
     log('\n✅ Neon setup completed successfully!', 'green');
+    log(`Branch: ${branchName}`, 'yellow');
+    log(`Branch ID: ${branchId}`, 'yellow');
 
-    // Output the branch name for GitHub Actions to capture
+    // GitHub Actions can capture this
     console.log(`neon_branch=${branchName}`);
+    console.log(`neon_branch_id=${branchId}`);
 
   } catch (error) {
     if (error instanceof Error) {
       log(`\n❌ Error: ${error.message}`, 'red');
+      console.error(error);
     }
     process.exit(1);
   }
