@@ -2,15 +2,14 @@ import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { eq } from "drizzle-orm";
 import { db } from "../src/config/database";
 import { users } from "../src/db/schema";
-import { setupTestDatabase, teardownTestDatabase } from "./setup";
-
-const BASE_URL = "http://localhost:3000";
+import { startTestServer, stopTestServer } from "./test-server";
 
 describe("Authentication", () => {
+  let baseUrl: string;
   let testUserId: number;
 
   beforeAll(async () => {
-    await setupTestDatabase();
+    baseUrl = (await startTestServer()).url;
 
     const [user] = await db
       .insert(users)
@@ -23,12 +22,12 @@ describe("Authentication", () => {
   });
 
   afterAll(async () => {
-    await teardownTestDatabase();
+    await stopTestServer();
   });
 
   describe("POST /api/auth/register", () => {
     it("should register a new user", async () => {
-      const response = await fetch(`${BASE_URL}/api/auth/register`, {
+      const response = await fetch(`${baseUrl}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -37,7 +36,10 @@ describe("Authentication", () => {
         }),
       });
 
-      const data = (await response.json()) as { user: { email: string }; token: string };
+      const data = (await response.json()) as {
+        user: { email: string };
+        token: string;
+      };
 
       expect(response.status).toBe(200);
       expect(data).toHaveProperty("user");
@@ -48,7 +50,7 @@ describe("Authentication", () => {
     });
 
     it("should reject duplicate email", async () => {
-      const response = await fetch(`${BASE_URL}/api/auth/register`, {
+      const response = await fetch(`${baseUrl}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -64,7 +66,7 @@ describe("Authentication", () => {
     });
 
     it("should reject weak password", async () => {
-      const response = await fetch(`${BASE_URL}/api/auth/register`, {
+      const response = await fetch(`${baseUrl}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -83,11 +85,11 @@ describe("Authentication", () => {
         .update(users)
         .set({
           passwordHash:
-            "$2a$10$N9qo8uLOickgx2ZMRZoMye.IKnWmDu2nJH5UKz5sPX/L3FJtQqY0W",
+            "$2b$10$yLN/Tk8xZl8HwmLM7NI3a.U2QAHDcuCP9dW/m3XUppi6dCJ4ET7zC",
         })
         .where(eq(users.id, testUserId));
 
-      const response = await fetch(`${BASE_URL}/api/auth/login`, {
+      const response = await fetch(`${baseUrl}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -103,7 +105,7 @@ describe("Authentication", () => {
     });
 
     it("should reject invalid credentials", async () => {
-      const response = await fetch(`${BASE_URL}/api/auth/login`, {
+      const response = await fetch(`${baseUrl}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

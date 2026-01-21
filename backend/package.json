@@ -7,7 +7,7 @@
     "build": "bun build src/index.ts --outdir ./dist",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
-    "test": "bun test --env-file .env.test.local",
+    "test:e2e": "NODE_ENV=test bun test ./test",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio"

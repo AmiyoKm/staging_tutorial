@@ -3,11 +3,16 @@ import { env } from './config/env';
 import { authPlugin } from './plugins/auth';
 import { todosPlugin } from './plugins/todos';
 
-const app = new Elysia()
+export const app = new Elysia()
   .use(authPlugin)
   .use(todosPlugin)
   .get('/', () => ({ message: 'Todo API is running' }))
-  .get('/health', () => ({ status: 'ok', timestamp: new Date().toISOString() }))
-  .listen(env.PORT);
+  .get('/health', () => ({ status: 'ok', timestamp: new Date().toISOString() }));
 
-console.log(`🦊 Server running at http://localhost:${env.PORT}`);
+// Only start server if not in test mode
+if (env.NODE_ENV !== 'test') {
+  app.listen(env.PORT);
+  console.log(`🦊 Server running at http://localhost:${env.PORT}`);
+}
+
+export default app;

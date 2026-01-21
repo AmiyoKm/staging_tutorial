@@ -1,15 +1,14 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
-import { setupTestDatabase, teardownTestDatabase } from "./setup";
-
-const BASE_URL = "http://localhost:3000";
+import { startTestServer, stopTestServer } from "./test-server";
 
 describe("Todos API", () => {
+  let baseUrl: string;
   let authToken: string;
 
   beforeAll(async () => {
-    await setupTestDatabase();
+    baseUrl = (await startTestServer()).url;
 
-    const registerResponse = await fetch(`${BASE_URL}/api/auth/register`, {
+    const registerResponse = await fetch(`${baseUrl}/api/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -18,17 +17,20 @@ describe("Todos API", () => {
       }),
     });
 
-    const data = (await registerResponse.json()) as { user: { id: number }; token: string };
+    const data = (await registerResponse.json()) as {
+      user: { id: number };
+      token: string;
+    };
     authToken = data.token;
   });
 
   afterAll(async () => {
-    await teardownTestDatabase();
+    await stopTestServer();
   });
 
   describe("POST /api/todos", () => {
     it("should create a new todo", async () => {
-      const response = await fetch(`${BASE_URL}/api/todos`, {
+      const response = await fetch(`${baseUrl}/api/todos`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -41,7 +43,10 @@ describe("Todos API", () => {
         }),
       });
 
-      const data = (await response.json()) as { title: string; priority: string };
+      const data = (await response.json()) as {
+        title: string;
+        priority: string;
+      };
 
       expect(response.status).toBe(200);
       expect(data.title).toBe("Test Todo");
@@ -49,7 +54,7 @@ describe("Todos API", () => {
     });
 
     it("should require authentication", async () => {
-      const response = await fetch(`${BASE_URL}/api/todos`, {
+      const response = await fetch(`${baseUrl}/api/todos`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: "No Auth Todo" }),
@@ -63,7 +68,7 @@ describe("Todos API", () => {
     let todoId: string;
 
     beforeAll(async () => {
-      const response = await fetch(`${BASE_URL}/api/todos`, {
+      const response = await fetch(`${baseUrl}/api/todos`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -76,11 +81,14 @@ describe("Todos API", () => {
     });
 
     it("should list user todos", async () => {
-      const response = await fetch(`${BASE_URL}/api/todos`, {
+      const response = await fetch(`${baseUrl}/api/todos`, {
         headers: { Authorization: `Bearer ${authToken}` },
       });
 
-      const data = (await response.json()) as { todos: unknown[]; total: number };
+      const data = (await response.json()) as {
+        todos: unknown[];
+        total: number;
+      };
 
       expect(response.status).toBe(200);
       expect(data.todos).toBeArray();
@@ -88,11 +96,13 @@ describe("Todos API", () => {
     });
 
     it("should filter by completion status", async () => {
-      const response = await fetch(`${BASE_URL}/api/todos?completed=false`, {
+      const response = await fetch(`${baseUrl}/api/todos?completed=false`, {
         headers: { Authorization: `Bearer ${authToken}` },
       });
 
-      const data = (await response.json()) as { todos: { completed: boolean }[] };
+      const data = (await response.json()) as {
+        todos: { completed: boolean }[];
+      };
 
       expect(response.status).toBe(200);
       expect(data.todos.every((t) => !t.completed)).toBe(true);
@@ -103,7 +113,7 @@ describe("Todos API", () => {
     let todoId: string;
 
     beforeAll(async () => {
-      const response = await fetch(`${BASE_URL}/api/todos`, {
+      const response = await fetch(`${baseUrl}/api/todos`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -116,7 +126,7 @@ describe("Todos API", () => {
     });
 
     it("should mark todo as completed", async () => {
-      const response = await fetch(`${BASE_URL}/api/todos/${todoId}/complete`, {
+      const response = await fetch(`${baseUrl}/api/todos/${todoId}/complete`, {
         method: "PATCH",
         headers: { Authorization: `Bearer ${authToken}` },
       });

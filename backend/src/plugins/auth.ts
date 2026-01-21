@@ -21,11 +21,12 @@ export const authPlugin = new Elysia({ name: 'auth' })
   )
   .post(
     '/api/auth/register',
-    async ({ body, jwt }) => {
+    async ({ body, jwt, set }) => {
       const { email, password } = body;
 
       const existingUser = await db.select().from(users).where(eq(users.email, email)).limit(1);
       if (existingUser.length > 0) {
+        set.status = 409;
         return { success: false, error: 'Email already registered' };
       }
 
