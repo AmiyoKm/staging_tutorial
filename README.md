@@ -65,8 +65,20 @@ bun run db:generate
 bun run db:migrate
 ```
 
+## Deployment
+
+### Quick Start (Railway + Neon)
+
+See [DEPLOYMENT.md](./docs/DEPLOYMENT.md) for detailed deployment instructions.
+
+**Summary:**
+1. Create Neon project with `staging` and `production` branches
+2. Connect Railway to GitHub repository
+3. Configure environment variables in Railway
+4. Deploy automatically on push to `develop` (staging) or `main` (production)
+
 ## CI/CD
 
 - CI runs on all PRs
 - Staging deploys from `develop` branch
-- Production deploys from `master` branch (GitFlow)
+- Production deploys from `main` branch (GitFlow)
