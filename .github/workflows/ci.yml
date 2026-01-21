@@ -10,7 +10,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:18.0-alpine3.22
         env:
           POSTGRES_DB: todo_db
           POSTGRES_USER: todo_user
@@ -45,8 +45,9 @@ jobs:
       - name: Run tests
         run: |
           cd backend
-          bun test
+          bun run test
         env:
+          NODE_ENV: test
           DATABASE_URL: postgresql://todo_user:todo_pass@localhost:5432/todo_db
           JWT_SECRET: test_secret
 
