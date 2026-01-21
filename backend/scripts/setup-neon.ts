@@ -26,8 +26,16 @@ interface NeonBranchesResponse {
   branches: NeonBranch[];
 }
 
+interface NeonEndpoint {
+  id: string;
+  current_state: string;
+  pending_state?: string;
+}
+
 interface NeonBranchResponse {
   branch: NeonBranch;
+  endpoints: NeonEndpoint[];
+  connection_uris?: { connection_uri: string }[];
 }
 
 interface NeonConnectionStringResponse {
@@ -71,7 +79,7 @@ async function listNeonBranches(projectId: string, apiKey: string): Promise<Neon
   return data.branches || [];
 }
 
-async function createNeonBranch(projectId: string, apiKey: string, branchName: string, parentId: string): Promise<NeonBranch> {
+async function createNeonBranch(projectId: string, apiKey: string, branchName: string, parentId: string): Promise<NeonBranchResponse> {
   log(`Creating branch "${branchName}" from parent "${parentId}"...`);
 
   const response = await fetch(`https://console.neon.tech/api/v2/projects/${projectId}/branches`, {
@@ -85,6 +93,11 @@ async function createNeonBranch(projectId: string, apiKey: string, branchName: s
         name: branchName,
         parent_id: parentId,
       },
+      endpoints: [
+        {
+          type: 'read_write',
+        },
+      ],
     }),
   });
 
@@ -92,8 +105,7 @@ async function createNeonBranch(projectId: string, apiKey: string, branchName: s
     throw new Error(`Failed to create branch: ${response.statusText}`);
   }
 
-  const data = (await response.json()) as NeonBranchResponse;
-  return data.branch;
+  return (await response.json()) as NeonBranchResponse;
 }
 
 async function getConnectionString(projectId: string, apiKey: string, branchId: string): Promise<string> {
@@ -138,9 +150,12 @@ async function main() {
     const existingBranch = branches.find(b => b.name === branchName);
 
     let branchId: string;
+    let connectionString: string;
     if (existingBranch) {
       branchId = existingBranch.id;
       log(`Branch "${branchName}" already exists (${existingBranch.current_state})`, 'green');
+      // For existing branches, get connection string via API
+      connectionString = await getConnectionString(projectId, apiKey, branchId);
     } else {
       // Find the primary/production branch as parent
       const primaryBranch = branches.find(b => b.primary || b.name === 'production' || b.name === 'br-diffusion');
@@ -149,15 +164,20 @@ async function main() {
       }
 
       log(`Creating "${branchName}" branch from "${primaryBranch.name}"...`);
-      const newBranch = await createNeonBranch(projectId, apiKey, branchName, primaryBranch.id);
-      branchId = newBranch.id;
-      log(`Branch created: ${branchId} (${newBranch.current_state})`, 'green');
+      const branchResponse = await createNeonBranch(projectId, apiKey, branchName, primaryBranch.id);
+      branchId = branchResponse.branch.id;
+      log(`Branch created: ${branchId} (${branchResponse.branch.current_state})`, 'green');
+
+      // Use connection URI from the branch creation response
+      const connectionUri = branchResponse.connection_uris?.[0]?.connection_uri;
+      if (!connectionUri) {
+        throw new Error('No connection URI returned from branch creation');
+      }
+      connectionString = connectionUri;
     }
 
-    // Step 2: Get connection string
-    logStep(2, 'Getting connection string...');
-    const connectionString = await getConnectionString(projectId, apiKey, branchId);
-    log(`Connection string retrieved (length: ${connectionString.length})`, 'green');
+    logStep(2, 'Connection string retrieved...');
+    log(`Connection string length: ${connectionString.length}`, 'green');
 
     // Set DATABASE_URL for migrations
     process.env.DATABASE_URL = connectionString;
