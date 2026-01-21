@@ -1,8 +1,10 @@
-import { config } from 'dotenv';
+import { config } from "dotenv";
 
-config();
+config({
+  path: process.env.NODE_ENV === "test" ? ".env.test.local" : ".env",
+});
 
-const REQUIRED_ENV_VARS = ['DATABASE_URL', 'JWT_SECRET'] as const;
+const REQUIRED_ENV_VARS = ["DATABASE_URL", "JWT_SECRET"] as const;
 
 for (const envVar of REQUIRED_ENV_VARS) {
   if (!process.env[envVar]) {
@@ -13,6 +15,6 @@ for (const envVar of REQUIRED_ENV_VARS) {
 export const env = {
   DATABASE_URL: process.env.DATABASE_URL!,
   JWT_SECRET: process.env.JWT_SECRET!,
-  NODE_ENV: process.env.NODE_ENV || 'development',
-  PORT: parseInt(process.env.PORT || '3000', 10),
+  NODE_ENV: process.env.NODE_ENV || "development",
+  PORT: parseInt(process.env.PORT || "3000", 10),
 } as const;
