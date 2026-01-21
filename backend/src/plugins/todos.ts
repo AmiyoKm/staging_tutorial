@@ -14,7 +14,9 @@ export const todosPlugin = new Elysia({ name: 'todos' })
   .use(authMiddleware)
   .get(
     '/api/todos',
-    async ({ userId, query }) => {
+    async (ctx) => {
+      const { userId } = ctx as unknown as AuthContext;
+      const { query } = ctx;
       const conditions = [eq(todos.userId, userId)];
 
       if (query.completed !== undefined) {
@@ -52,7 +54,9 @@ export const todosPlugin = new Elysia({ name: 'todos' })
   )
   .post(
     '/api/todos',
-    async ({ userId, body }) => {
+    async (ctx) => {
+      const { userId } = ctx as unknown as AuthContext;
+      const { body } = ctx;
       const [newTodo] = await db
         .insert(todos)
         .values({
@@ -79,7 +83,9 @@ export const todosPlugin = new Elysia({ name: 'todos' })
   )
   .get(
     '/api/todos/:id',
-    async ({ userId, params, set }) => {
+    async (ctx) => {
+      const { userId } = ctx as unknown as AuthContext;
+      const { params, set } = ctx;
       const [todo] = await db
         .select()
         .from(todos)
@@ -109,7 +115,9 @@ export const todosPlugin = new Elysia({ name: 'todos' })
   )
   .put(
     '/api/todos/:id',
-    async ({ userId, params, body, set }) => {
+    async (ctx) => {
+      const { userId } = ctx as unknown as AuthContext;
+      const { params, body, set } = ctx;
       const [existingTodo] = await db
         .select()
         .from(todos)
@@ -152,7 +160,9 @@ export const todosPlugin = new Elysia({ name: 'todos' })
   )
   .delete(
     '/api/todos/:id',
-    async ({ userId, params, set }) => {
+    async (ctx) => {
+      const { userId } = ctx as unknown as AuthContext;
+      const { params, set } = ctx;
       const [existingTodo] = await db
         .select()
         .from(todos)
@@ -174,7 +184,9 @@ export const todosPlugin = new Elysia({ name: 'todos' })
   )
   .patch(
     '/api/todos/:id/complete',
-    async ({ userId, params, set }) => {
+    async (ctx) => {
+      const { userId } = ctx as unknown as AuthContext;
+      const { params, set } = ctx;
       const [existingTodo] = await db
         .select()
         .from(todos)

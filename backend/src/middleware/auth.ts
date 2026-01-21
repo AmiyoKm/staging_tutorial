@@ -31,7 +31,7 @@ export const authMiddleware = new Elysia({ name: 'auth-middleware' })
     }
 
     return {
-      userId: (payload as any).userId as number,
-      email: (payload as any).email as string,
-    } as AuthContext;
+      userId: (payload).userId as number,
+      email: (payload).email as string,
+    };
   });
