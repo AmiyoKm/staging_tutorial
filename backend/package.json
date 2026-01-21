@@ -10,7 +10,8 @@
     "test": "NODE_ENV=test bun test",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "neon:setup": "bun run scripts/setup-neon.ts"
   },
   "dependencies": {
     "@elysiajs/jwt": "^1.4.0",
