@@ -56,7 +56,10 @@ export const todosPlugin = new Elysia({ name: 'todos' })
       const [newTodo] = await db
         .insert(todos)
         .values({
-          ...body,
+          title: body.title,
+          description: body.description,
+          dueDate: body.dueDate ? new Date(body.dueDate) : null,
+          priority: body.priority,
           userId,
         })
         .returning();
@@ -120,7 +123,13 @@ export const todosPlugin = new Elysia({ name: 'todos' })
 
       const [updatedTodo] = await db
         .update(todos)
-        .set({ ...body, updatedAt: new Date() })
+        .set({
+          title: body.title,
+          description: body.description,
+          dueDate: body.dueDate ? new Date(body.dueDate) : undefined,
+          priority: body.priority,
+          updatedAt: new Date(),
+        })
         .where(eq(todos.id, params.id))
         .returning();
 
