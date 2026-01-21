@@ -244,3 +244,53 @@ railway variables --service=staging
 # Shell into container
 railway shell --service=staging
 ```
+
+---
+
+## GitHub Actions Deployment (Automated)
+
+This project uses automated deployment via GitHub Actions.
+
+### Prerequisites
+
+Configure these secrets in GitHub repository settings:
+
+| Secret | Value | How to Get |
+|--------|-------|------------|
+| `NEON_PROJECT_ID` | `sparkling-voice-51393485` | From Neon console |
+| `NEON_API_KEY` | Your API key | Neon → Account → API Keys |
+| `DOCKER_USERNAME` | `amiyokm` | Your Docker Hub username |
+| `DOCKER_PASSWORD` | Access token | Docker Hub → Account Settings → Security |
+
+### Deployment Flow
+
+1. **Push to `develop`** → Triggers staging deployment
+2. **Push to `master`** → Triggers production deployment
+
+### What Happens During Deployment
+
+1. Neon setup script runs:
+   - Checks if branch exists
+   - Creates branch if needed
+   - Gets connection string
+   - Runs migrations
+2. Docker image built and pushed
+3. Railway auto-deploys from Docker Hub
+
+### Manual Deployment
+
+To manually trigger deployment, use the Railway CLI:
+
+```bash
+# Staging
+railway up --service=staging
+
+# Production
+railway up --service=production
+```
+
+### Monitoring Deployments
+
+- GitHub Actions: Check "Actions" tab in repository
+- Railway: Check dashboard for deployment logs
+- Neon: Check branch status in console
