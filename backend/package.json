@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "@types/bcryptjs": "^3.0.0",
-    "drizzle-kit": "^0.31.8",
-    "bun-types": "latest"
+    "bun-types": "latest",
+    "drizzle-kit": "^0.31.8"
   }
 }
