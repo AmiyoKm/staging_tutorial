@@ -1,3 +1,7 @@
+---
+description: 
+alwaysApply: true
+---
 
 Default to using Bun instead of Node.js.
 
