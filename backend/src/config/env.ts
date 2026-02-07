@@ -1,9 +1,3 @@
-import { config } from "dotenv";
-
-config({
-  path: process.env.NODE_ENV === "test" ? ".env.test.local" : ".env",
-});
-
 const REQUIRED_ENV_VARS = ["DATABASE_URL", "JWT_SECRET"] as const;
 
 for (const envVar of REQUIRED_ENV_VARS) {
