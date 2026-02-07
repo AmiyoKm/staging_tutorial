@@ -152,10 +152,29 @@ async function main() {
     let branchId: string;
     let connectionString: string;
     if (existingBranch) {
-      branchId = existingBranch.id;
-      log(`Branch "${branchName}" already exists (${existingBranch.current_state})`, 'green');
-      // For existing branches, get connection string via API
-      connectionString = await getConnectionString(projectId, apiKey, branchId);
+      // Archived branches don't have compute endpoints, need to recreate
+      if (existingBranch.current_state === 'archived') {
+        log(`Branch "${branchName}" is archived, recreating...`, 'yellow');
+
+        const primaryBranch = branches.find(b => b.primary || b.name === 'production' || b.name === 'br-diffusion');
+        if (!primaryBranch) {
+          throw new Error('No parent branch found to create from');
+        }
+
+        const branchResponse = await createNeonBranch(projectId, apiKey, branchName, primaryBranch.id);
+        branchId = branchResponse.branch.id;
+        log(`Branch recreated: ${branchId} (${branchResponse.branch.current_state})`, 'green');
+
+        const connectionUri = branchResponse.connection_uris?.[0]?.connection_uri;
+        if (!connectionUri) {
+          throw new Error('No connection URI returned from branch creation');
+        }
+        connectionString = connectionUri;
+      } else {
+        branchId = existingBranch.id;
+        log(`Branch "${branchName}" already exists (${existingBranch.current_state})`, 'green');
+        connectionString = await getConnectionString(projectId, apiKey, branchId);
+      }
     } else {
       // Find the primary/production branch as parent
       const primaryBranch = branches.find(b => b.primary || b.name === 'production' || b.name === 'br-diffusion');
