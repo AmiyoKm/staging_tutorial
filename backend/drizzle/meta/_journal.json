@@ -8,6 +8,13 @@
       "when": 1769009039979,
       "tag": "0000_long_dreadnoughts",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1770567714601,
+      "tag": "0001_handy_shadowcat",
+      "breakpoints": true
     }
   ]
 }

@@ -29,20 +29,5 @@ services:
       timeout: 5s
       retries: 5
 
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
-    environment:
-      DATABASE_URL: postgresql://todo_user:todo_pass@postgres:5432/todo_db
-      JWT_SECRET: local_dev_secret_change_this
-      NODE_ENV: development
-      PORT: 3000
-    depends_on:
-      postgres:
-        condition: service_healthy
-
 volumes:
   postgres_data:
