@@ -16,6 +16,7 @@
     "@elysiajs/cors": "^1.4.1",
     "@elysiajs/jwt": "^1.4.0",
     "@sinclair/typebox": "^0.34.48",
+    "arctic": "^3.7.0",
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.2.4",
     "drizzle-orm": "^0.45.1",
