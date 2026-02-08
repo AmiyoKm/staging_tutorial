@@ -30,7 +30,10 @@ jobs:
 
       - name: Build and push Docker image
         run: |
-          docker build -t amiyokm/todo-frontend:staging ./frontend
+          docker build \
+            --build-arg VITE_API_URL=https://todo-backend-staging-yy6c.onrender.com \
+            -t amiyokm/todo-frontend:staging \
+            ./frontend
           docker push amiyokm/todo-frontend:staging
 
       - name: Smoke tests
