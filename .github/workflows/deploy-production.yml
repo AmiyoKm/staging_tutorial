@@ -23,14 +23,6 @@ jobs:
           cd backend
           bun install
 
-      - name: Setup Neon & run migrations
-        run: |
-          cd backend
-          bun run neon:setup --environment=production
-        env:
-          NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
-          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
-
       - name: Create version tag
         id: tag
         run: |
@@ -55,4 +47,4 @@ jobs:
         run: |
           echo "Run health checks against production"
           # TODO: Add actual health checks against production URL
-          # curl -f https://production-url.railway.app/health || exit 1
+          # curl -f https://todo-backend-production.onrender.com/health || exit 1

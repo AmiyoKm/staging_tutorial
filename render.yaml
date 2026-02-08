@@ -1,0 +1,42 @@
+services:
+  - type: web
+    name: todo-backend-staging
+    env: docker
+    image: amiyokm/todo-backend:staging
+    region: oregon
+    plan: starter
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: staging
+      - key: DATABASE_URL
+        fromDatabase:
+          name: todo-db-staging
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+    databases:
+      - name: todo-db-staging
+        databaseName: todo_staging
+        user: todo_user
+
+  - type: web
+    name: todo-backend-production
+    env: docker
+    image: amiyokm/todo-backend:production
+    region: oregon
+    plan: starter
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: todo-db-production
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+    databases:
+      - name: todo-db-production
+        databaseName: todo_production
+        user: todo_user
