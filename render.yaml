@@ -2,9 +2,11 @@ databases:
   - name: todo-db-staging
     databaseName: todo_staging
     user: todo_user
+    plan: basic-256mb
   - name: todo-db-production
     databaseName: todo_production
     user: todo_user
+    plan: basic-256mb
 
 services:
   - type: web
