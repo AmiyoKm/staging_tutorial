@@ -122,34 +122,28 @@ async function createNeonBranch(
   return (await response.json()) as NeonBranchResponse;
 }
 
-async function unarchiveNeonBranch(
+async function deleteNeonBranch(
   projectId: string,
   apiKey: string,
   branchId: string,
 ): Promise<void> {
-  log(`Unarchiving branch by creating compute endpoint...`);
+  log(`Deleting archived branch ${branchId}...`);
 
   const response = await fetch(
-    `https://console.neon.tech/api/v2/projects/${projectId}/branches/${branchId}/endpoints`,
+    `https://console.neon.tech/api/v2/projects/${projectId}/branches/${branchId}`,
     {
-      method: "POST",
+      method: "DELETE",
       headers: {
         Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        endpoint: {
-          type: "read_write",
-        },
-      }),
     },
   );
 
   if (!response.ok) {
-    throw new Error(`Failed to unarchive branch: ${response.statusText}`);
+    throw new Error(`Failed to delete branch: ${response.statusText}`);
   }
 
-  log(`Branch unarchived successfully`, "green");
+  log(`Branch deleted successfully`, "green");
 }
 
 async function getConnectionString(
@@ -203,18 +197,39 @@ async function main() {
     let branchId: string;
     let connectionString: string;
     if (existingBranch) {
-      // Archived branches don't have compute endpoints, need to unarchive
+      // Archived branches don't have compute endpoints, delete and recreate
       if (existingBranch.current_state === "archived") {
-        log(`Branch "${branchName}" is archived, unarchiving...`, "yellow");
-        branchId = existingBranch.id;
+        log(`Branch "${branchName}" is archived, deleting and recreating...`, "yellow");
 
-        await unarchiveNeonBranch(projectId, apiKey, branchId);
+        await deleteNeonBranch(projectId, apiKey, existingBranch.id);
 
-        connectionString = await getConnectionString(
+        const primaryBranch = branches.find(
+          (b) =>
+            b.primary || b.name === "production" || b.name === "br-diffusion",
+        );
+        if (!primaryBranch) {
+          throw new Error("No parent branch found to create from");
+        }
+
+        log(`Creating new "${branchName}" branch from "${primaryBranch.name}"...`);
+        const branchResponse = await createNeonBranch(
           projectId,
           apiKey,
-          branchId,
+          branchName,
+          primaryBranch.id,
         );
+        branchId = branchResponse.branch.id;
+        log(
+          `Branch recreated: ${branchId} (${branchResponse.branch.current_state})`,
+          "green",
+        );
+
+        const connectionUri =
+          branchResponse.connection_uris?.[0]?.connection_uri;
+        if (!connectionUri) {
+          throw new Error("No connection URI returned from branch creation");
+        }
+        connectionString = connectionUri;
       } else {
         branchId = existingBranch.id;
         log(
