@@ -1,8 +1,17 @@
+databases:
+  - name: todo-db-staging
+    databaseName: todo_staging
+    user: todo_user
+  - name: todo-db-production
+    databaseName: todo_production
+    user: todo_user
+
 services:
   - type: web
     name: todo-backend-staging
-    env: docker
-    image: amiyokm/todo-backend:staging
+    runtime: image
+    image:
+      url: docker.io/amiyokm/todo-backend:staging
     region: oregon
     plan: starter
     healthCheckPath: /health
@@ -15,15 +24,12 @@ services:
           property: connectionString
       - key: JWT_SECRET
         generateValue: true
-    databases:
-      - name: todo-db-staging
-        databaseName: todo_staging
-        user: todo_user
 
   - type: web
     name: todo-backend-production
-    env: docker
-    image: amiyokm/todo-backend:production
+    runtime: image
+    image:
+      url: docker.io/amiyokm/todo-backend:production
     region: oregon
     plan: starter
     healthCheckPath: /health
@@ -36,7 +42,3 @@ services:
           property: connectionString
       - key: JWT_SECRET
         generateValue: true
-    databases:
-      - name: todo-db-production
-        databaseName: todo_production
-        user: todo_user
