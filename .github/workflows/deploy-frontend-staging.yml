@@ -1,0 +1,43 @@
+name: Deploy Frontend to Staging
+
+on:
+  push:
+    branches: [develop]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          bun install
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push Docker image
+        run: |
+          docker build \
+            --build-arg VITE_API_URL=https://todo-backend-staging-yy6c.onrender.com \
+            -t amiyokm/todo-frontend:staging \
+            ./frontend
+          docker push amiyokm/todo-frontend:staging
+
+      - name: Smoke tests
+        run: |
+          echo "Run smoke tests against staging"
+          # TODO: Add actual smoke tests against staging URL
+          # curl -f https://todo-frontend-staging.onrender.com/ || exit 1
