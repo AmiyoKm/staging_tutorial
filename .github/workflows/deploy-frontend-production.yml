@@ -42,7 +42,11 @@ jobs:
 
       - name: Build and push Docker images
         run: |
-          docker build -t amiyokm/todo-frontend:production -t amiyokm/todo-frontend:latest ./frontend
+          docker build \
+            --build-arg VITE_API_URL=https://todo-backend-production.onrender.com \
+            -t amiyokm/todo-frontend:production \
+            -t amiyokm/todo-frontend:latest \
+            ./frontend
           docker push amiyokm/todo-frontend:production
           docker push amiyokm/todo-frontend:latest
 
