@@ -70,7 +70,7 @@ export function useToggleComplete() {
       })
       return { previous }
     },
-    onError: (err, id, context) => {
+    onError: (_err, _id, context) => {
       queryClient.setQueryData(['todos'], context?.previous)
     },
     onSettled: () => {

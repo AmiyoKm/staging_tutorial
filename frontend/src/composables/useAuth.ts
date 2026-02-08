@@ -1,4 +1,5 @@
 import { useQuery, useMutation } from '@tanstack/vue-query'
+import { watch } from 'vue'
 import { authApi } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
@@ -13,8 +14,12 @@ export function useAuth() {
     queryKey: ['auth', 'me'],
     queryFn: authApi.me,
     enabled: () => authStore.isAuthenticated,
-    retry: false,
-    onSuccess: (data) => {
+    retry: false
+  })
+
+  // Update auth store when user data changes
+  watch(user, (data) => {
+    if (data) {
       authStore.user = data
     }
   })
