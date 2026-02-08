@@ -17,6 +17,14 @@ const email = ref('')
 const password = ref('')
 const error = ref('')
 
+const loginWithGithub = () => {
+  window.location.href = `${import.meta.env.VITE_API_URL}/api/auth/github`
+}
+
+const loginWithGoogle = () => {
+  window.location.href = `${import.meta.env.VITE_API_URL}/api/auth/google`
+}
+
 async function handleSubmit() {
   error.value = ''
 
@@ -78,6 +86,26 @@ function toggleMode() {
           <Button type="submit" class="w-full" :disabled="isPending">
             {{ isPending ? 'Loading...' : (isLogin ? 'Sign In' : 'Create Account') }}
           </Button>
+
+          <div class="relative my-4">
+            <div class="absolute inset-0 flex items-center">
+              <span class="w-full border-t" />
+            </div>
+            <div class="relative flex justify-center text-xs uppercase">
+              <span class="bg-background px-2 text-muted-foreground">
+                Or continue with
+              </span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <Button variant="outline" type="button" :disabled="isPending" @click="loginWithGithub">
+              GitHub
+            </Button>
+            <Button variant="outline" type="button" :disabled="isPending" @click="loginWithGoogle">
+              Google
+            </Button>
+          </div>
         </form>
         <div class="mt-4 text-center text-sm">
           <button

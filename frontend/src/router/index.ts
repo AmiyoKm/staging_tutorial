@@ -15,8 +15,15 @@ const router = createRouter({
       name: 'login',
       component: () => import('@/pages/Login.vue'),
       meta: { requiresGuest: true }
+    },
+    {
+      path: '/auth/callback',
+      name: 'auth-callback',
+      component: () => import('@/pages/AuthCallback.vue'),
+      meta: { requiresGuest: true }
     }
   ]
+
 })
 
 // Navigation guard
