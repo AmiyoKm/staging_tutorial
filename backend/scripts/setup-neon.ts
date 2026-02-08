@@ -60,6 +60,10 @@ function logStep(step: number, message: string) {
   log(`\n[Step ${step}] ${message}`, "blue");
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 // Neon API helper functions
 async function listNeonBranches(
   projectId: string,
@@ -211,13 +215,42 @@ async function main() {
           throw new Error("No parent branch found to create from");
         }
 
+        log(`Waiting for deletion to complete...`);
+        await sleep(5000);
+
         log(`Creating new "${branchName}" branch from "${primaryBranch.name}"...`);
-        const branchResponse = await createNeonBranch(
-          projectId,
-          apiKey,
-          branchName,
-          primaryBranch.id,
-        );
+
+        let branchResponse: NeonBranchResponse | null = null;
+        let attempts = 0;
+        const maxAttempts = 3;
+        while (attempts < maxAttempts) {
+          try {
+            branchResponse = await createNeonBranch(
+              projectId,
+              apiKey,
+              branchName,
+              primaryBranch.id,
+            );
+            break;
+          } catch (error) {
+            attempts++;
+            if (
+              error instanceof Error &&
+              error.message.includes("Locked") &&
+              attempts < maxAttempts
+            ) {
+              log(`Branch still locked, retrying (${attempts}/${maxAttempts})...`, "yellow");
+              await sleep(3000);
+            } else {
+              throw error;
+            }
+          }
+        }
+
+        if (!branchResponse) {
+          throw new Error("Failed to create branch after ${maxAttempts} attempts");
+        }
+
         branchId = branchResponse.branch.id;
         log(
           `Branch recreated: ${branchId} (${branchResponse.branch.current_state})`,
