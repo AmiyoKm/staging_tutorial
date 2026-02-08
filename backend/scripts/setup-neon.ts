@@ -158,12 +158,18 @@ async function getConnectionString(
   log("Getting connection string...");
 
   const response = await fetch(
-    `https://console.neon.tech/api/v2/projects/${projectId}/branches/${branchId}/connection-string`,
+    `https://console.neon.tech/api/v2/projects/${projectId}/connection-uris`,
     {
+      method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
+      body: JSON.stringify({
+        branch_id: branchId,
+        database_name: "neondb",
+        role_name: "neondb_owner",
+      }),
     },
   );
 
